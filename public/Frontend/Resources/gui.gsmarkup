@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<!DOCTYPE gsmarkup>
+<gsmarkup>
+
+<objects>
+
+    <window title="Edit" x="260" y="100" width="300" height="600" visible="NO"  resizable="YES" id="edit_window">
+        <vbox>
+            <scrollView hasHorizontalScroller="NO" width="100" height="200" backgroundColor="white">
+                <textView editable="YES" valueBinding="#CPOwner.blocksController.selection.output_value" backgroundColor="white"/>
+            </scrollView>
+        </vbox>
+    </window>
+
+    <window title="Input" x="60" y="200" width="300" height="600" visible="NO"  resizable="YES" id="input_window">
+        <vbox>
+            <scrollView hasHorizontalScroller="NO" width="100" height="200" backgroundColor="white">
+                <textView id="input_text" editable="YES" valueBinding="#CPOwner.inputController.selection.content" backgroundColor="white"/>
+            </scrollView>
+            <button title="Run" target="#CPOwner" action="run:"/>
+        </vbox>
+    </window>
+
+
+    <window id="add_blocks_window" visible="NO" width="400" height="600">
+        <vbox>
+            <scrollView hasHorizontalScroller="NO">
+                <tableView zebra="yes" id="addorderstv" valueBinding="#CPOwner.blocksCatalogueController" allowsMultipleSelection="YES" target="#CPOwner" doubleAction="performAddBlocks:">
+                    <tableColumn identifier="name" title="name" width="300" editable="NO"/>
+                </tableView>
+            </scrollView>
+            <hbox>
+                <button title="Hinzufügen" target="#CPOwner" action="performAddBlocks:"/>
+                <hspace/>
+                <button title="Abbrechen" target="#CPOwner" action="cancelAddBlocks:"/>
+            </hbox>
+        </vbox>
+    </window>
+
+    <window bridge="YES" id="mainwindow" delegate="#CPOwner">
+        <vbox>
+        <splitView vertical="YES" autosaveName="vsplitter_main_llm_0">
+            <vbox width="100">
+                <scrollView hasHorizontalScroller="YES">
+                    <tableView zebra="yes" id="data_tv" autosaveName="data_tv" valueBinding="#CPOwner.inputController" target="#CPOwner" allowsEmptySelection="NO">
+                        <tableColumn identifier="title" title="title" editable="YES"/>
+                        <tableColumn identifier="insertion_time" title="insertion_time" editable="NO"/>
+                    </tableView>
+                </scrollView>
+                <ButtonBar target="#CPOwner" actionsButton="NO" minusButtonAction="removeInput:" plusButtonAction="insertInput:"/>
+            </vbox>
+            <vbox>
+                <hbox>
+                    <button title="New..." target="#CPOwner" action="addBlocks:"/>
+                    <button title="Delete" target="#CPOwner" action="removeBlock:"/>
+                    <button title="Run" target="#CPOwner" action="run:"/>
+                    <hspace/>
+                    <button title="Revert scratchpad" target="#CPOwner" action="revertScratchpad:"/>
+                </hbox>
+                <scrollView>
+                    <patchbayView id="lace_view" width="1000" height="1000" halign="min" valign="min"/>
+                </scrollView>
+            </vbox>
+            <vbox>
+                <scrollView hasHorizontalScroller="YES" width="100">
+                    <tableView zebra="yes" id="out_tv" autosaveName="out_tv" valueBinding="#CPOwner.outputController" target="#CPOwner" allowsEmptySelection="NO">
+                        <tableColumn identifier="content" title="content" editable="YES"/>
+                        <tableColumn identifier="insertion_time" title="insertion_time" editable="NO"/>
+                    </tableView>
+                </scrollView>
+                <ButtonBar target="#CPOwner.outputController" actionsButton="YES" minusButtonAction="remove:">
+                    <popUpButtonItem title="Download" target="#CPOwner" action="downloadOutput:" enabledBinding="#CPOwner.outputController.selection.@count"/>
+                </ButtonBar>
+            </vbox>
+        </splitView>
+        </vbox>
+    </window>
+
+</objects>
+
+<connectors>
+    <outlet source="CPOwner" target="mainwindow" label="mainWindow"/>
+    <outlet source="CPOwner" target="lace_view" label="laceView"/>
+    <outlet source="CPOwner" target="add_blocks_window" label="addBlocksWindow"/>
+    <outlet source="CPOwner" target="edit_window" label="editWindow"/>
+    <outlet source="CPOwner" target="input_window" label="inputWindow"/>
+    <outlet source="CPOwner" target="input_text" label="inputText"/>
+</connectors>
+
+
+</gsmarkup>
