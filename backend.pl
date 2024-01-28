@@ -21,7 +21,7 @@ use secrets;
 
 no warnings 'uninitialized';
 
-helper pg => sub { state $pg = Mojo::Pg->new('postgresql://postgres@aug-info-db/llm_patchbay') };
+helper pg => sub { state $pg = Mojo::Pg->new('postgresql://postgres@localhost/llm_patchbay') };
 
 plugin 'ClientIP';
 
@@ -286,8 +286,9 @@ helper get_result_of_block_id => sub { my ($self, $id, $idinput) = @_;
         $ua->connect_timeout(0);
 
         my $settings = $current_block->{output_value} ? decode_json($current_block->{output_value}) : {};
+        my $model  = $settings->{model} || 'gpt-4-1106-preview';
         my $params =    {
-                            model => 'gpt-4-1106-preview',
+                            model => $model,
                             messages => [  {  role => "user", content => $prompt }  ]
                         };
         $ua->on(start => sub {
@@ -296,6 +297,50 @@ helper get_result_of_block_id => sub { my ($self, $id, $idinput) = @_;
         });
 
         return $ua->post("https://api.openai.com/v1/chat/completions" => json => $params)->res->json->{choices}->[0]->{message}->{content};
+    }
+    elsif ($current_block->{type} eq '21') # LLM_Gemini
+    {
+        my $prompt        = $self->prepare_llm_prompt($inputs->{Input}, $inputs->{PromptTemplate});
+        $prompt           =~s/"/\\"/ogsi;
+        $prompt           =~s/\n/\\n/ogsi;
+        my $output_file   = TempFileNames::tempFileName('/tmp/llmpb', '.txt');
+        my $request_file  = TempFileNames::tempFileName('/tmp/llmpb', '.json');
+        my $request = q|
+                        {
+                            "contents": {
+                                "role": "user",
+                                "parts": {
+                                    "text": "|.$prompt.q|"
+                                },
+                            },
+                            "generation_config": {
+                                "temperature": 0.2,
+                            }
+                        }
+                       |;
+        Mojo::File->new($request_file)->spurt($request);
+        my $system = q{curl -X POST -H "Authorization: Bearer  $(gcloud auth print-access-token)" -H "Content-Type: application/json; charset=utf-8" -d @}.$request_file.q{ "https://us-central1-aiplatform.googleapis.com/v1/projects/peppy-pottery-337417/locations/us-central1/publishers/google/models/gemini-pro:streamGenerateContent" >}.$output_file;
+        system($system);
+        my $result = Mojo::File->new($output_file)->slurp;
+        warn $result;
+        my $data = decode_json($result);
+
+        my $concatenated_text = "";
+
+        foreach my $row (@{$data}) {
+            foreach my $candidate (@{$row->{'candidates'}}) {
+                my $content = $candidate->{'content'};
+                if ($content && $content->{'parts'}) {
+                    foreach my $part (@{$content->{'parts'}}) {
+                        if ($part->{'text'}) {
+                            $concatenated_text .= $part->{'text'};
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $concatenated_text;
     }
     elsif ($current_block->{type} eq '9' || $current_block->{type} eq '10') # Llama-family
     {
